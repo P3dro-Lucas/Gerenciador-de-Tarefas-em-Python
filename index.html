@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contagem de Produtos</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#172033;background:#f4f6f9}
+*{box-sizing:border-box}body{margin:0}.wrap{max-width:1050px;margin:auto;padding:18px}.card{background:#fff;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 5px 24px #0001}
+h1,h2{margin:0 0 12px}.muted{color:#667085;font-size:.92rem}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{font-weight:650;font-size:.9rem;display:block;margin-bottom:6px}input{width:100%;padding:12px;border:1px solid #ccd3dd;border-radius:10px;font-size:1rem}
+.row{display:flex;gap:8px;align-items:end}.row>*{flex:1}.row .small{flex:0 0 auto}
+button{border:0;border-radius:10px;padding:11px 14px;font-weight:700;cursor:pointer;background:#1f2937;color:#fff}
+button.secondary{background:#e9edf3;color:#172033}button.danger{background:#b42318}button.success{background:#087443}
+button:disabled{opacity:.45;cursor:not-allowed}.hidden{display:none}.product-name{font-size:1.05rem;font-weight:700;padding:10px 12px;background:#f6f8fb;border-radius:10px;min-height:44px}
+.suggestions{border:1px solid #d8dee8;border-radius:10px;overflow:hidden;margin-top:6px}.suggestion{padding:10px 12px;background:#fff;border-bottom:1px solid #edf0f4;cursor:pointer}.suggestion:hover{background:#f5f7fa}
+.item{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;border-top:1px solid #edf0f4;padding:13px 0}.item:first-child{border-top:0}.qty{font-weight:800;font-size:1.05rem}.meta{font-size:.84rem;color:#667085}.actions{display:flex;gap:6px}
+.totalbar{display:flex;justify-content:space-between;align-items:center;font-weight:800;margin-top:12px;padding-top:12px;border-top:2px solid #e7ebf0}.bottom{display:flex;gap:10px;margin-top:14px}.bottom button{flex:1}
+.badge{display:inline-block;background:#eef2ff;color:#3730a3;padding:4px 8px;border-radius:999px;font-size:.78rem;font-weight:700}
+dialog{border:0;border-radius:16px;max-width:430px;width:calc(100% - 28px);padding:0;box-shadow:0 20px 70px #0005}dialog::backdrop{background:#0007}.modal{padding:20px}.modal h3{margin-top:0}.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}.countdown{font-size:2rem;font-weight:900;text-align:center;margin:10px}
+.camera{position:relative;background:#111;border-radius:12px;overflow:hidden;min-height:240px}.camera video{width:100%;display:block;max-height:55vh;object-fit:cover}.scanbox{position:absolute;inset:25% 12%;border:3px solid #fff;border-radius:12px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.item{grid-template-columns:1fr auto}.actions{grid-column:1/-1}.bottom{flex-direction:column}.wrap{padding:10px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="card"><h1>Contagem de Produtos</h1><div class="muted">Ferramenta de contagem com catálogo de produtos.</div></header>
+<section id="cadastro" class="card"><h2>Identificação do contador</h2><div class="grid">
+<div><label>Nome</label><input id="cadNome" placeholder="Digite seu nome"></div>
+<div><label>Cadastro</label><input id="cadRegistro" placeholder="Número/código de cadastro"></div></div>
+<div class="bottom"><button id="startBtn" class="success">Iniciar contagem</button></div></section>
+
+<section id="contagem" class="hidden">
+<div class="card"><h2>Lançar produto</h2><div class="grid">
+<div><label>Código do produto</label><div class="row"><input id="codigo" placeholder="Digite ou leia o código"><button id="scanBtn" class="small">📷 Ler código</button></div></div>
+<div><label>Nome do produto</label><div id="nomeProduto" class="product-name">Aguardando código ou busca...</div></div></div>
+<div class="bottom">
+<button id="unknownCodeBtn" class="secondary">➕ Código não cadastrado</button>
+<button id="noCodeBtn" class="secondary">➕ Produto sem código</button>
+</div>
+<div style="margin-top:12px"><label>Não encontrou o código? Pesquise pelo nome</label><input id="busca" placeholder="Digite uma palavra do nome"><div id="sugestoes"></div></div>
+<div style="margin-top:12px"><label>Quantidade contada</label><div class="row"><input id="quantidade" type="number" min="1" step="1" value="1"><button id="addBtn" class="success">Adicionar contagem</button></div></div>
+<div id="selecionado" class="muted" style="margin-top:8px"></div></div>
+
+<div class="card"><h2>Produtos contabilizados</h2><div id="lista"></div><div class="totalbar"><span>Produtos diferentes</span><span id="totalItens">0</span></div>
+<div class="bottom"><button id="clearBtn" class="danger">Excluir contagem</button><button id="finishBtn" class="success">Finalizar contagem</button></div></div>
+</section></div>
+
+<dialog id="confirmDlg"><div class="modal"><h3 id="dlgTitle">Confirmação</h3><p id="dlgText"></p><div id="countdown" class="countdown"></div><div class="modal-actions"><button id="cancelDlg" class="secondary">Cancelar</button><button id="confirmDlgBtn" class="danger" disabled>Confirmar</button></div></div></dialog>
+<dialog id="unknownDlg"><div class="modal"><h3>Produto com código não cadastrado</h3><p>O código foi lido/digitado, mas não existe no cadastro. Informe obrigatoriamente o nome do produto.</p><label>Nome do produto *</label><input id="unknownName" placeholder="Nome completo do produto"><div class="modal-actions"><button id="cancelUnknown" class="secondary">Cancelar</button><button id="saveUnknown" class="success">Adicionar</button></div></div></dialog>
+<dialog id="noCodeDlg"><div class="modal"><h3>Produto sem código</h3><p>Tem certeza que deseja subir um produto sem código? No Excel, o campo Código será <b>NULL</b>.</p><label>Nome do produto *</label><input id="noCodeName" placeholder="Nome completo do produto"><div class="modal-actions"><button id="cancelNoCode" class="secondary">Cancelar</button><button id="saveNoCode" class="success">Confirmar</button></div></div></dialog>
+<dialog id="cameraDlg"><div class="modal"><h3>Leitura de código</h3><div class="camera"><video id="video" autoplay playsinline></video><div class="scanbox"></div></div><p id="scanStatus" class="muted">Aponte a câmera para o código.</p><div class="modal-actions"><button id="closeCamera" class="secondary">Fechar</button></div></div></dialog>
+
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script>
+let produtos=[],selecionado=null,contagens=new Map(),contador={nome:"",cadastro:""},stream=null;
+const $=id=>document.getElementById(id), clean=v=>String(v??"").trim(), codeKey=v=>clean(v).replace(/\s/g,"");
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function encontrar(c){let k=codeKey(c);return produtos.find(p=>codeKey(p.codigo)===k)}
+function mostrar(p){selecionado=p||null;$("nomeProduto").textContent=p?(p.nome+(p.tamanho?" — "+p.tamanho:"")):"Aguardando código ou busca...";$("codigo").value=p?.codigo||"";$("selecionado").textContent=p?`Selecionado: ${p.nome}${p.tamanho?" — "+p.tamanho:""}`:""}
+fetch("produtos.json").then(r=>r.json()).then(d=>produtos=d).catch(()=>alert("Erro ao carregar produtos.json."));
+$("startBtn").onclick=()=>{let nome=clean($("cadNome").value),cadastro=clean($("cadRegistro").value);if(!nome||!cadastro)return alert("Preencha nome e cadastro.");contador={nome,cadastro};$("cadastro").classList.add("hidden");$("contagem").classList.remove("hidden");$("codigo").focus()};
+$("codigo").addEventListener("input",()=>{let p=encontrar($("codigo").value);if(p)mostrar(p);else if($("codigo").value){$("nomeProduto").textContent="Código não encontrado. Use “Código não cadastrado”.";selecionado=null}});
+$("busca").addEventListener("input",()=>{let q=clean($("busca").value).toLowerCase(),box=$("sugestoes");box.innerHTML="";if(q.length<2)return;let found=produtos.filter(p=>(p.nome+" "+p.tamanho).toLowerCase().includes(q)).slice(0,30);found.forEach(p=>{let d=document.createElement("div");d.className="suggestion";d.innerHTML=`<b>${esc(p.nome)}</b>${p.tamanho?" — "+esc(p.tamanho):""}<div class="meta">Código: ${esc(p.codigo)}</div>`;d.onclick=()=>{mostrar(p);$("busca").value="";box.innerHTML=""};box.appendChild(d)});if(!found.length)box.innerHTML='<div class="suggestion">Nenhum produto encontrado.</div>'});
+function adicionar(p,q){let k=codeKey(p.codigo||("NULL::"+p.nome)),x=contagens.get(k)||{produto:p,vezes:0,unidades:0};x.vezes++;x.unidades+=q;contagens.set(k,x);render();$("quantidade").value=1;$("codigo").value="";mostrar(null);$("codigo").focus()}
+$("addBtn").onclick=()=>{let p=selecionado||encontrar($("codigo").value),q=parseInt($("quantidade").value,10);if(!p)return alert("Selecione um produto. Para código novo use o botão correspondente; para produto sem código use “Produto sem código”.");if(!Number.isInteger(q)||q<1)return alert("Informe uma quantidade válida.");adicionar(p,q)};
+$("unknownCodeBtn").onclick=()=>{let c=codeKey($("codigo").value);if(!c)return alert("Digite ou escaneie um código primeiro.");$("unknownName").value="";$("unknownDlg").showModal();$("unknownName").focus()};
+$("cancelUnknown").onclick=()=>$("unknownDlg").close();
+$("saveUnknown").onclick=()=>{let c=codeKey($("codigo").value),n=clean($("unknownName").value),q=parseInt($("quantidade").value,10);if(!n)return alert("O nome do produto é obrigatório.");if(!Number.isInteger(q)||q<1)return alert("Informe uma quantidade válida.");adicionar({codigo:c,nome:n,tamanho:"",novo:true},q);$("unknownDlg").close()};
+$("noCodeBtn").onclick=()=>{$("noCodeName").value="";$("noCodeDlg").showModal();$("noCodeName").focus()};
+$("cancelNoCode").onclick=()=>$("noCodeDlg").close();
+$("saveNoCode").onclick=()=>{let n=clean($("noCodeName").value),q=parseInt($("quantidade").value,10);if(!n)return alert("O nome do produto é obrigatório.");if(!Number.isInteger(q)||q<1)return alert("Informe uma quantidade válida.");adicionar({codigo:"NULL",nome:n,tamanho:"",semCodigo:true},q);$("noCodeDlg").close()};
+function render(){let a=[...contagens.values()];$("totalItens").textContent=a.length;$("lista").innerHTML=a.length?"":"<div class='muted'>Nenhuma contagem registrada ainda.</div>";a.forEach(x=>{let d=document.createElement("div");d.className="item";d.innerHTML=`<div><b>${esc(x.produto.nome)}</b>${x.produto.tamanho?` <span class="badge">${esc(x.produto.tamanho)}</span>`:""}<div class="meta">Código: ${esc(x.produto.codigo||"NULL")} · ${x.vezes} contagem(ns)</div></div><div class="qty">${x.unidades}</div><div class="actions"><button class="secondary" data-edit>Editar</button><button class="danger" data-del>Excluir</button></div>`;d.querySelector("[data-edit]").onclick=()=>editar(x.produto.codigo,x.produto.nome);d.querySelector("[data-del]").onclick=()=>confirmar("Excluir contagem",`Deseja apagar a contagem de ${x.produto.nome}?`,()=>{contagens.delete(codeKey(x.produto.codigo||("NULL::"+x.produto.nome)));render()});$("lista").appendChild(d)})}
+function editar(codigo,nome){let k=codeKey(codigo||("NULL::"+nome)),x=contagens.get(k);if(!x)return;let v=prompt(`Nova quantidade total de "${x.produto.nome}":`,x.unidades);if(v===null)return;let n=parseInt(v,10);if(!Number.isInteger(n)||n<0)return alert("Quantidade inválida.");if(n===0)contagens.delete(k);else x.unidades=n;render()}
+let timer=null,action=null;
+function confirmar(t,txt,fn){$("dlgTitle").textContent=t;$("dlgText").textContent=txt;$("countdown").textContent="3";$("confirmDlgBtn").disabled=true;action=fn;$("confirmDlg").showModal();let n=3;clearInterval(timer);timer=setInterval(()=>{n--;if(n>0)$("countdown").textContent=n;else{$("countdown").textContent="Agora você pode confirmar.";$("confirmDlgBtn").disabled=false;clearInterval(timer)}},1000)}
+$("cancelDlg").onclick=()=>{$("confirmDlg").close();clearInterval(timer)};$("confirmDlgBtn").onclick=()=>{clearInterval(timer);$("confirmDlg").close();if(action)action()};
+$("clearBtn").onclick=()=>confirmar("Excluir toda a contagem","Tem certeza que deseja apagar TODOS os produtos contados? Esta ação não poderá ser desfeita.",()=>{contagens.clear();render()});
+$("finishBtn").onclick=()=>confirmar("Finalizar contagem","Tem certeza que deseja finalizar? Será gerado o arquivo Excel.",finalizar);
+async function finalizar(){if(!contagens.size)return alert("Não há produtos contabilizados.");let d=new Date(),data=d.toLocaleDateString("pt-BR"),hora=d.toLocaleTimeString("pt-BR"),rows=[...contagens.values()].map((x,i)=>({Nome:i===0?contador.nome:"",Cadastro:i===0?contador.cadastro:"",Data:i===0?data:"",Hora:i===0?hora:"",Código:x.produto.codigo||"NULL","Nome do produto":x.produto.nome,Tamanho:x.produto.tamanho||"","Quantidade de vezes que contou":x.vezes,"QTD Contabilizada":x.unidades}));let wb=XLSX.utils.book_new(),ws=XLSX.utils.json_to_sheet(rows);ws["!cols"]=[{wch:22},{wch:16},{wch:13},{wch:11},{wch:18},{wch:42},{wch:12},{wch:28},{wch:20}];XLSX.utils.book_append_sheet(wb,ws,"Contagem");let fn=`Contagem_${contador.nome.replace(/[^\wÀ-ÿ-]+/g,"_")}_${d.toISOString().slice(0,10)}.xlsx`;XLSX.writeFile(wb,fn);setTimeout(async()=>{try{let blob=XLSX.write(wb,{bookType:"xlsx",type:"array"}),file=new File([blob],fn,{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});if(navigator.share&&navigator.canShare?.({files:[file]}))await navigator.share({title:"Contagem de produtos",text:"Contagem finalizada",files:[file]});}catch(e){}},500)}
+$("scanBtn").onclick=async()=>{$("cameraDlg").showModal();try{if(!("BarcodeDetector"in window)){ $("scanStatus").textContent="Seu navegador não oferece leitura nativa. Digite o código.";return}let det=new BarcodeDetector({formats:["qr_code","ean_13","ean_8","code_128","code_39","upc_a","upc_e","itf"]});stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}});$("video").srcObject=stream;let loop=async()=>{if(!stream)return;try{let c=await det.detect($("video"));if(c.length){$("codigo").value=c[0].rawValue;let p=encontrar(c[0].rawValue);if(p)mostrar(p);else{closeCamera();$("unknownCodeBtn").click()}return}}catch(e){}requestAnimationFrame(loop)};requestAnimationFrame(loop)}catch(e){$("scanStatus").textContent="Não foi possível acessar a câmera. Verifique a permissão."}};
+function closeCamera(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$("cameraDlg").close()}$("closeCamera").onclick=closeCamera;
+render();
+</script></body></html>
